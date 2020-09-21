@@ -1,7 +1,7 @@
 use std::error::Error;
 
-use chrono::Utc;
-use mongodb::bson::{doc, Document};
+use chrono::{DateTime, Utc};
+use mongodb::bson::{self, doc};
 use mongodb::error::Error as MongoError;
 use mongodb::results::InsertOneResult;
 use mongodb::sync::{Client, Collection};
@@ -13,6 +13,8 @@ struct Data {
     id: Option<bson::oid::ObjectId>,
     name: String,
     value: i64,
+    tags: Vec<String>,
+    created_at: DateTime<Utc>,
 }
 
 fn insert_data(col: &Collection) -> Result<InsertOneResult, MongoError> {
@@ -20,6 +22,8 @@ fn insert_data(col: &Collection) -> Result<InsertOneResult, MongoError> {
         id: None,
         name: "n1".to_string(),
         value: 10,
+        tags: vec!["a1".to_string(), "b2".to_string()],
+        created_at: Utc::now(),
     };
     let new_data = bson::to_bson(&new_data)?;
     col.insert_one(new_data.as_document().unwrap().to_owned(), None)
@@ -41,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     col.drop(None)?;
 
-    insert_data(&col);
+    insert_data(&col)?;
 
     let one_data = find_one(&col);
     println!("{:?}", one_data);

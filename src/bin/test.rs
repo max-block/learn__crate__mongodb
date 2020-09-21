@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use chrono::Utc;
-use mongodb::bson::{doc, Document};
+use mongodb::bson::{self, doc, Document};
 use mongodb::error::Error as MongoError;
 use mongodb::results::InsertOneResult;
 use mongodb::sync::{Client, Collection};
