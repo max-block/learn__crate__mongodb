@@ -1,5 +1,7 @@
 use std::error::Error;
 
+
+use bson::oid::ObjectId;
 use chrono::{DateTime, Utc};
 use mongodb::bson::{self, doc};
 use mongodb::error::Error as MongoError;
@@ -10,7 +12,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 struct Data {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    id: Option<bson::oid::ObjectId>,
+    id: Option<ObjectId>,
     name: String,
     value: i64,
     tags: Vec<String>,
