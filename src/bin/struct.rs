@@ -1,10 +1,6 @@
-use std::error::Error;
-
-use bson::oid::ObjectId;
+use bson::{oid::ObjectId, ser::Error, Document};
 use chrono::{DateTime, Utc};
 use mongodb::bson::{self, doc};
-use mongodb::error::Error as MongoError;
-use mongodb::results::InsertOneResult;
 use mongodb::sync::{Client, Collection};
 use serde::{Deserialize, Serialize};
 
@@ -20,6 +16,12 @@ struct Data {
     created_at: DateTime<Utc>,
 }
 
+impl Data {
+    fn to_document(&self) -> Result<Document, Error> {
+        bson::to_document(self)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 struct Child {
     name: String,
@@ -33,12 +35,12 @@ enum DataStatus {
     ERROR,
 }
 
-fn insert_data(col: &Collection) -> Result<InsertOneResult, MongoError> {
+fn insert_data(col: &Collection, name: String, value: i64, status: DataStatus) {
     let new_data = Data {
         id: None,
-        name: "n1".to_string(),
-        status: DataStatus::NEW,
-        value: 10,
+        name,
+        status,
+        value,
         tags: vec!["a1".to_string(), "b2".to_string()],
         children: vec![
             Child {
@@ -52,29 +54,32 @@ fn insert_data(col: &Collection) -> Result<InsertOneResult, MongoError> {
         ],
         created_at: Utc::now(),
     };
-    let new_data = bson::to_bson(&new_data)?;
-    col.insert_one(new_data.as_document().unwrap().to_owned(), None)
+
+    col.insert_one(new_data.to_document().unwrap(), None).unwrap();
 }
 
-fn find_one(col: &Collection) -> Result<Data, MongoError> {
-    let data = col
-        .find_one(doc! {"name": "n1"}, None)?
-        .expect("n1 not found");
+fn find_one(col: &Collection) {
+    let data = col.find_one(doc! {"name": "n1"}, None).unwrap().expect("n1 not found");
 
-    let data: Data = bson::from_bson(data.into())?;
-    Ok(data)
+    let data: Data = bson::from_bson(data.into()).unwrap();
+    println!("{:#?}", data);
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let client = Client::with_uri_str("mongodb://localhost:27017")?;
+fn find_many(col: &Collection) {
+    let filter = Document::new();
+    filter.insert("status", DataStatus::OK);
+
+}
+
+fn main() {
+    let client = Client::with_uri_str("mongodb://localhost:27017").unwrap();
     let db = client.database("test");
     let col = db.collection("test");
 
-    col.drop(None)?;
+    col.drop(None).unwrap();
 
-    insert_data(&col)?;
+    insert_data(&col, String::from("n1"), 10, DataStatus::OK);
+    insert_data(&col, String::from("n2"), 13, DataStatus::ERROR);
 
-    let one_data = find_one(&col);
-    println!("{:#?}", one_data);
-    Ok(())
+    find_one(&col);
 }
