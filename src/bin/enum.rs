@@ -1,4 +1,4 @@
-use mongodb::bson::{self, Bson, Document};
+use mongodb::bson::{self, doc, Bson, Document};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -27,9 +27,9 @@ impl ToString for Status {
     }
 }
 
-impl Into<Bson> for Status {
-    fn into(self) -> Bson {
-        Bson::String(self.to_string())
+impl std::convert::From<Status> for Bson {
+    fn from(s: Status) -> Self {
+        Bson::String(s.to_string())
     }
 }
 
@@ -43,5 +43,8 @@ fn main() {
 
     let mut filter = Document::new();
     filter.insert("status", Status::Ok);
+    dbg!(filter);
+
+    let filter = doc! {"status": Status::Ok};
     dbg!(filter);
 }
