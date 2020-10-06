@@ -2,7 +2,7 @@ use std::error::Error;
 
 use bson::{oid::ObjectId, Document};
 use chrono::{DateTime, Utc};
-use mongodb::sync::{Client, Collection, Cursor};
+use mongodb::sync::{Client, Collection};
 use mongodb::{
     bson::{self, doc, Bson},
     options::FindOptions,
@@ -93,14 +93,6 @@ fn find_many(col: &Collection) -> Result<Vec<Data>, DynErr> {
     filter.insert("status", DataStatus::Ok);
     let options = FindOptions::builder().sort(doc! { "name": -1}).build();
     let res = col.find(filter, options)?.collect::<Result<Vec<_>, _>>()?;
-    Ok(res.into_iter().map(|d| bson::from_document(d).unwrap()).collect())
-}
-
-fn cursor_to_vector<T>(cursor: Cursor) -> Result<Vec<T>, DynErr>
-where
-    T: Deserialize,
-{
-    let res = cursor.collect::<Result<Vec<_>, _>>()?;
     Ok(res.into_iter().map(|d| bson::from_document(d).unwrap()).collect())
 }
 
