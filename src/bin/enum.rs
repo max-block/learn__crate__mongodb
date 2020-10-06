@@ -27,7 +27,7 @@ impl ToString for Status {
     }
 }
 
-impl std::convert::From<Status> for Bson {
+impl From<Status> for Bson {
     fn from(s: Status) -> Self {
         Bson::String(s.to_string())
     }
