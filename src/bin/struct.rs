@@ -1,8 +1,15 @@
-use bson::{oid::ObjectId, ser::Error, Document};
+use std::error::Error;
+
+use bson::{oid::ObjectId, Document};
 use chrono::{DateTime, Utc};
-use mongodb::bson::{self, doc};
 use mongodb::sync::{Client, Collection};
+use mongodb::{
+    bson::{self, doc, Bson},
+    options::FindOptions,
+};
 use serde::{Deserialize, Serialize};
+
+type DynErr = Box<dyn Error>;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Data {
@@ -16,12 +23,6 @@ struct Data {
     created_at: DateTime<Utc>,
 }
 
-impl Data {
-    fn to_document(&self) -> Result<Document, Error> {
-        bson::to_document(self)
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 struct Child {
     name: String,
@@ -30,12 +31,30 @@ struct Child {
 
 #[derive(Debug, Serialize, Deserialize)]
 enum DataStatus {
-    NEW,
-    OK,
-    ERROR,
+    #[serde(rename = "NEW")]
+    New,
+    #[serde(rename = "OK")]
+    Ok,
+    #[serde(rename = "ERROR")]
+    Error,
 }
 
-fn insert_data(col: &Collection, name: String, value: i64, status: DataStatus) {
+impl ToString for DataStatus {
+    fn to_string(&self) -> String {
+        match self {
+            DataStatus::New => String::from("NEW"),
+            DataStatus::Ok => String::from("OK"),
+            DataStatus::Error => String::from("ERROR"),
+        }
+    }
+}
+impl Into<Bson> for DataStatus {
+    fn into(self) -> Bson {
+        Bson::String(self.to_string())
+    }
+}
+
+fn insert_data(col: &Collection, name: String, value: i64, status: DataStatus) -> Result<(), DynErr> {
     let new_data = Data {
         id: None,
         name,
@@ -55,31 +74,43 @@ fn insert_data(col: &Collection, name: String, value: i64, status: DataStatus) {
         created_at: Utc::now(),
     };
 
-    col.insert_one(new_data.to_document().unwrap(), None).unwrap();
+    col.insert_one(bson::to_document(&new_data)?, None)?;
+    Ok(())
 }
 
-fn find_one(col: &Collection) {
-    let data = col.find_one(doc! {"name": "n1"}, None).unwrap().expect("n1 not found");
-
-    let data: Data = bson::from_bson(data.into()).unwrap();
-    println!("{:#?}", data);
+fn find_one(col: &Collection) -> Result<Option<Data>, DynErr> {
+    let data = col.find_one(doc! {"name": "n1"}, None)?;
+    if data.is_some() {
+        Ok(Some(bson::from_document::<Data>(data.unwrap())?))
+    } else {
+        Ok(None)
+    }
 }
 
-fn find_many(col: &Collection) {
-    let filter = Document::new();
-    filter.insert("status", DataStatus::OK);
-
+fn find_many(col: &Collection) -> Result<Vec<Data>, DynErr> {
+    println!("\n\nfind_many");
+    let mut filter = Document::new();
+    filter.insert("status", DataStatus::Ok);
+    let options = FindOptions::builder().sort(doc! { "name": -1}).build();
+    let res = col.find(filter, options)?.collect::<Result<Vec<_>, _>>()?;
+    Ok(res.into_iter().map(|d| bson::from_document(d).unwrap()).collect())
 }
 
-fn main() {
+fn main() -> Result<(), DynErr> {
     let client = Client::with_uri_str("mongodb://localhost:27017").unwrap();
-    let db = client.database("test");
-    let col = db.collection("test");
+    let db = client.database("learn__crate__mongodb");
+    let col = db.collection("test_struct");
 
     col.drop(None).unwrap();
 
-    insert_data(&col, String::from("n1"), 10, DataStatus::OK);
-    insert_data(&col, String::from("n2"), 13, DataStatus::ERROR);
+    insert_data(&col, String::from("n1"), 10, DataStatus::Ok)?;
+    insert_data(&col, String::from("n2"), 13, DataStatus::Error)?;
 
-    find_one(&col);
+    let res = find_one(&col)?;
+    dbg!(res);
+
+    let res = find_many(&col)?;
+    dbg!(res);
+
+    Ok(())
 }
