@@ -1,3 +1,5 @@
+use chrono::{DateTime, Utc};
+use mongodb::bson::{self, doc, Document, oid::ObjectId};
 use mongodb::sync::Client;
 use serde::{Deserialize, Serialize};
 
@@ -32,25 +34,32 @@ enum DataStatus {
 fn main() -> Result<(), mongodb::error::Error> {
     let client = Client::with_uri_str("mongodb://localhost:27017")?;
     let database = client.database("learn__create__mongodb");
-    let collection = database.collection::<Book>("books");
+    let collection = database.collection::<Data>("data");
+
+    let new_data = Data {
+        id: None,
+        name: "n1".to_string(),
+        status: DataStatus::Ok,
+        value: 17,
+        tags: vec!["a1".to_string(), "b2".to_string()],
+        children: vec![
+            Child {
+                name: "c1".to_string(),
+                group: "g1".to_string(),
+            },
+            Child {
+                name: "c2".to_string(),
+                group: "g2".to_string(),
+            },
+        ],
+        created_at: Utc::now(),
+    };
+    collection.insert_one(new_data, None).unwrap();
+
+    // search a doc
+    let r = collection.find_one(doc!{"name": "n1".to_string()}, None);
+    dbg!(r);
 
 
-    let data_list = vec![
-        Book {
-            title: "1984".to_string(),
-            author: "George Orwell".to_string(),
-        },
-        Book {
-            title: "Animal Farm".to_string(),
-            author: "George Orwell".to_string(),
-        },
-        Book {
-            title: "The Great Gatsby".to_string(),
-            author: "F. Scott Fitzgerald".to_string(),
-        },
-    ];
-
-// Insert some books into the "mydb.books" collection.
-    collection.insert_many(docs, None)?;
     Ok(())
 }
