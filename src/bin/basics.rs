@@ -1,65 +1,21 @@
-use chrono::{DateTime, Utc};
-use mongodb::bson::{self, doc, Document, oid::ObjectId};
+use mongodb::bson::{doc, Document};
 use mongodb::sync::Client;
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Data {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    id: Option<ObjectId>,
-    name: String,
-    status: DataStatus,
-    value: i64,
-    tags: Vec<String>,
-    children: Vec<Child>,
-    created_at: DateTime<Utc>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Child {
-    name: String,
-    group: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-enum DataStatus {
-    #[serde(rename = "NEW")]
-    New,
-    #[serde(rename = "OK")]
-    Ok,
-    #[serde(rename = "ERROR")]
-    Error,
-}
 
 fn main() -> Result<(), mongodb::error::Error> {
     let client = Client::with_uri_str("mongodb://localhost:27017")?;
     let database = client.database("learn__create__mongodb");
-    let collection = database.collection::<Data>("data");
+    let collection = database.collection::<Document>("data");
+    collection.drop(None)?;
 
-    let new_data = Data {
-        id: None,
-        name: "n1".to_string(),
-        status: DataStatus::Ok,
-        value: 17,
-        tags: vec!["a1".to_string(), "b2".to_string()],
-        children: vec![
-            Child {
-                name: "c1".to_string(),
-                group: "g1".to_string(),
-            },
-            Child {
-                name: "c2".to_string(),
-                group: "g2".to_string(),
-            },
-        ],
-        created_at: Utc::now(),
-    };
-    collection.insert_one(new_data, None).unwrap();
+    collection.insert_one(doc!{"name": "n1", "value": 1}, None)?;
+    collection.insert_many(vec![doc!{"name": "n2", "value": 2}], None)?;
 
-    // search a doc
-    let r = collection.find_one(doc!{"name": "n1".to_string()}, None);
-    dbg!(r);
+    // let all: Vec<Document> = collection.find(doc!{}, None)?.collect();
+    let all: Vec<mongodb::error::Result<Document>> = collection.find(doc!{}, None)?.collect();
+    dbg!(all);
 
+    
+    
 
     Ok(())
 }
