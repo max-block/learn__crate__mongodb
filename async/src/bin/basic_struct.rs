@@ -1,8 +1,4 @@
-use mongodb::Client;
-
-struct Data {
-    
-}
+use mongodb::{bson::Document, Client};
 
 #[tokio::main]
 async fn main() -> mongodb::error::Result<()> {
