@@ -12,9 +12,7 @@ async fn main() -> mongodb::error::Result<()> {
     collection.drop(None).await?;
 
     collection.insert_one(doc! {"name": "n1", "value": 1}, None).await?;
-    collection
-        .insert_many(vec![doc! {"name": "n2", "value": 2}], None)
-        .await?;
+    collection.insert_many(vec![doc! {"name": "n2", "value": 2}], None).await?;
 
     let all: Vec<mongodb::error::Result<Document>> = collection.find(doc! {}, None).await?.collect().await;
     dbg!(all);

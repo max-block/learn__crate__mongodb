@@ -1,11 +1,11 @@
 [package]
-name = "learn__crate__mongodb"
+name = "learn"
 version = "0.1.0"
 edition = "2021"
 
 
 [dependencies]
-mongodb = { version = "2.1.0", default-features = false, features = ["sync"] }
-serde = "1"
-serde_json = "1.0.74"
+mongodb = { version = "2.2.1", default-features = false, features = ["sync"] }
+serde = "1.0.137"
+# serde_json = "1.0.74"
 chrono = { version = "0.4.19", features = ["serde"] }
