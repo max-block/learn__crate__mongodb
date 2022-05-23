@@ -1,8 +1,5 @@
 use chrono::{DateTime, Utc};
-use mongodb::{
-    bson::{doc, oid::ObjectId},
-    IndexModel,
-};
+use mongodb::{bson::{doc, oid::ObjectId}, bson, IndexModel};
 use mongodb::{options::IndexOptions, sync::Client};
 use serde::{Deserialize, Serialize};
 
@@ -25,12 +22,10 @@ struct Child {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 enum DataStatus {
-    #[serde(rename = "NEW")]
     New,
-    #[serde(rename = "OK")]
     Ok,
-    #[serde(rename = "ERROR")]
     Error,
 }
 
@@ -66,6 +61,11 @@ fn main() -> Result<(), mongodb::error::Error> {
         created_at: Utc::now(),
     };
     collection.insert_one(new_data, None).unwrap();
+
+
+    // update a doc
+    let r = collection.update_one(doc! {"name": "n1"}, doc! {"$set": {"status": bson::to_bson(&DataStatus::Error).unwrap()}}, None);
+    dbg!(r.unwrap());
 
     // search a doc
     let r = collection.find_one(doc! {"name": "n1"}, None);
